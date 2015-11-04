@@ -25,6 +25,7 @@ var Promise = require('bluebird')
   , winston = require('winston')
   , logger = winston // to allow refactoring
   , getId = () => _.uniqueId('req_')
+  , EXIT_SIGNALS = [ 'SIGINT', 'SIGTERM' ]
 
 winston.remove(winston.transports.Console)
 winston.add(winston.transports[conf.logging.type], conf.logging) // TODO
@@ -35,6 +36,13 @@ try {
 } catch (undefined) {}
 
 logger.silly('Starting up with config:', conf)
+
+function initialShutdownHook() {
+  logger.info(`Exiting because of ${signal}.`)
+  process.exit(0)
+}
+
+_.each( EXIT_SIGNALS, (signal) => process.on(signal, initialShutdownHook) )
 
 program
   .version('0.0.1')
@@ -101,6 +109,15 @@ program
       logger.info('Starting tcp server on %s.', options.tcpPort)
       tcpServer.serve(options.tcpPort)
     }
+    _.each( EXIT_SIGNALS, (signal) => {
+        process.removeListener(signal, initialShutdownHook)
+        process.on(signal, () => {
+          udpServer.close()
+          tcpServer.close()
+          logger.info(`Exiting because of ${signal}.`)
+          process.exit(0)
+        })
+      })
   })
 
 function parseRecord(records, _result) {
