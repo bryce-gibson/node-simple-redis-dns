@@ -1,0 +1,25 @@
+{
+  "name": "simple-redis-dns",
+  "version": "0.0.1",
+  "description": "A simple dns solution using redis.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node . server",
+    "add": "node . add",
+    "remove": "node . remove"
+  },
+  "author": "Bryce Gibson <bryce.gibson@unico.com.au>",
+  "license": "MIT",
+  "dependencies": {
+    "bluebird": "^3.0.5",
+    "commander": "^2.9.0",
+    "ioredis": "^1.10.0",
+    "lodash": "^3.10.1",
+    "native-dns": "^0.7.0",
+    "rc": "^1.1.2",
+    "winston": "^2.0.1"
+  },
+  "optionalDependencies": {
+    "node-time-uuid": "^0.1.5"
+  }
+}

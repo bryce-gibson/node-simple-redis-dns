@@ -1,0 +1,12 @@
+app:
+  build: ./
+  environment:
+    simple-redis-dns_redis: redis://redis:6379/
+  links:
+    - redis
+
+redis:
+  image: redis
+  volumes:
+    - ./data:/data
+  command: redis-server --appendonly yes
