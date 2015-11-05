@@ -146,7 +146,6 @@ program
   .command('add <record...>')
   .alias('a')
   .description('add dns entries')
-  .option('-t, --todo, not sure...')
   .action( (toAdd, options) => {
     _.defaults(options, conf)
     const redis = new Redis(options.redis)
@@ -183,7 +182,6 @@ program
   .command('remove <record...>')
   .alias('r')
   .description('remove dns entries')
-  .option('-t, --todo, not sure...')
   .action( (toRemove, options) => {
     _.defaults(options, conf)
     const redis = new Redis(options.redis)
