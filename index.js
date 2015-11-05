@@ -154,22 +154,29 @@ program
 
     logger.info('Adding entries.', recordsToAdd)
 
-    let promises = _.map(recordsToAdd, (record) => {
-      const type = record[0]
-        , args = record.slice(1)
-        , domains = _.dropRightWhile(args, net.isIP)
-        , ips = args.slice(domains.length)
-
-      return _(domains)
-        .map( (domain) => _.map(ips, (ip) => redis.sadd(`${type}:${domain}`, ip) ) )
-        .flatten()
-        .value()
+    redis.on('error', (err) => {
+      logger.error('Failure connecting to redis.', err)
+      process.exit(1)
     })
 
-    Promise.all(promises)
-      .then( () => logger.info('Records added.') )
-      .catch( (err) => logger.error('Error adding records.', err) )
-      .then( () => redis.quit() )
+    redis.on('connect', () => {
+      let promises = _.map(recordsToAdd, (record) => {
+        const type = record[0]
+          , args = record.slice(1)
+          , domains = _.dropRightWhile(args, net.isIP)
+          , ips = args.slice(domains.length)
+
+        return _(domains)
+          .map( (domain) => _.map(ips, (ip) => redis.sadd(`${type}:${domain}`, ip) ) )
+          .flatten()
+          .value()
+      })
+
+      Promise.all(promises)
+        .then( () => logger.info('Records added.') )
+        .catch( (err) => logger.error('Error adding records.', err) )
+        .then( () => redis.quit() )
+    })
   })
 
 program
@@ -184,22 +191,29 @@ program
 
     logger.info('Removing entries.', recordsToRemove)
 
-    let promises = _.map(recordsToRemove, (record) => {
-      const type = record[0]
-        , args = record.slice(1)
-        , domains = _.dropRightWhile(args, net.isIP)
-        , ips = args.slice(domains.length)
-
-      return _(domains)
-        .map( (domain) => _.map(ips, (ip) => redis.srem(`${type}:${domain}`, ip)) )
-        .flatten()
-        .value()
+    redis.on('error', (err) => {
+      logger.error('Failure connecting to redis.', err)
+      process.exit(1)
     })
 
-    Promise.all(promises)
-      .then( () => logger.info('Records removed.') )
-      .catch( (err) => logger.error('Error removing records.', err) )
-      .then( () => redis.quit() )
+    redis.on('connect', () => {
+      let promises = _.map(recordsToRemove, (record) => {
+        const type = record[0]
+          , args = record.slice(1)
+          , domains = _.dropRightWhile(args, net.isIP)
+          , ips = args.slice(domains.length)
+
+        return _(domains)
+          .map( (domain) => _.map(ips, (ip) => redis.srem(`${type}:${domain}`, ip)) )
+          .flatten()
+          .value()
+      })
+
+      Promise.all(promises)
+        .then( () => logger.info('Records removed.') )
+        .catch( (err) => logger.error('Error removing records.', err) )
+        .then( () => redis.quit() )
+    })
   })
 
 program.on('--help', () => {
