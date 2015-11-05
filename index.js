@@ -5,7 +5,7 @@ const DEFAULTS = {
   , udpPort: 53
   , logging: {
     type: 'Console'
-    , level: 'silly'
+    , level: 'info'
     , handleExceptions: true
     , humanReadableUnhandledException: true
   }
@@ -123,7 +123,7 @@ program
 function parseRecord(records, _result) {
   const result = _result == null ? [] : _result
     , field = records[records.length - 1]
-  console.log('parseRecord ' + result.length + ' ' + field)
+  logger.silly('parseRecord ' + result.length + ' ' + field)
   if(field == null) return []
   if( dns.consts.NAME_TO_QTYPE[field.toUpperCase()] ) return [ field.toUpperCase() ].concat(result)
   return parseRecord(_.initial(records), [ field ].concat(result))
