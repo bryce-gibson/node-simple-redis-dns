@@ -37,7 +37,7 @@ try {
 
 logger.silly('Starting up with config:', conf)
 
-function initialShutdownHook() {
+function initialShutdownHook(signal) {
   logger.info(`Exiting because of ${signal}.`)
   process.exit(0)
 }
