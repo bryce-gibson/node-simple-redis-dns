@@ -15,6 +15,7 @@ const DEFAULTS = {
 }
 
 var Promise = require('bluebird')
+  , fs = Promise.promisifyAll(require('fs'))
   , net = require('net')
   , dns = require('native-dns')
   , program = require('commander')
@@ -63,33 +64,30 @@ program
     function onRequest(req, res) {
       const type = dns.consts.QTYPE_TO_NAME[req.question[0].type]
         , name = req.question[0].name
-        , stream = redis.sscanStream(`${type}:${name}`)
 
       req.id = getId()
-
       logger.profile(req.id)
       logger.debug('%s: Request received.', req.id, { type, name })
 
-      stream.on('data', (results) => {
-        _.each(results, (result) => {
-          res.answer.push(dns[type]({
-            name: name,
-            address: result,
-            ttl: 0
-          }))
-        })
-      })
+      redis.lookup(type, name)
+        .then( (results) => {
 
-      stream.on('end', () => {
-        logger.debug('%s: Responding.', req.id)
-        res.send()
-        logger.profile(req.id)
-      })
-      stream.on('error', (err) => {
-        logger.debug('%s: Error processing request.', req.id, err)
-        res.send()
-        logger.profile(req.id)
-      })
+          _.each(results, (result) => {
+            res.answer.push(dns[type]({
+              name: name,
+              address: result,
+              ttl: 0
+            }))
+          })
+          logger.debug('%s: Responding.', req.id)
+          res.send()
+          logger.profile(req.id)
+        })
+        .catch( (err) => {
+          logger.debug('%s: Error processing request.', req.id, err)
+          res.send()
+          logger.profile(req.id)
+        })
     }
 
     function onError(err, buff, req, res) {
@@ -101,15 +99,21 @@ program
       s.on('error', onError)
     })
 
-    if(options.udpPort) {
-      logger.info('Starting udp server on %s.', options.udpPort)
-      udpServer.serve(options.udpPort)
-    }
-    if(options.tcpPort) {
-      logger.info('Starting tcp server on %s.', options.tcpPort)
-      tcpServer.serve(options.tcpPort)
-    }
-    _.each( EXIT_SIGNALS, (signal) => {
+    fs.readFileAsync('lookup.lua', 'utf8').then( (lookup) => {
+      redis.defineCommand('lookup', {
+        numberOfKeys: 2
+        , lua: lookup
+      })
+
+      if(options.udpPort) {
+        logger.info('Starting udp server on %s.', options.udpPort)
+        udpServer.serve(options.udpPort)
+      }
+      if(options.tcpPort) {
+        logger.info('Starting tcp server on %s.', options.tcpPort)
+        tcpServer.serve(options.tcpPort)
+      }
+      _.each( EXIT_SIGNALS, (signal) => {
         process.removeListener(signal, initialShutdownHook)
         process.on(signal, () => {
           udpServer.close()
@@ -118,11 +122,13 @@ program
           process.exit(0)
         })
       })
+    })
   })
 
 function parseRecord(records, _result) {
   const result = _result == null ? [] : _result
     , field = records[records.length - 1]
+
   logger.silly('parseRecord ' + result.length + ' ' + field)
   if(field == null) return []
   if( dns.consts.NAME_TO_QTYPE[field.toUpperCase()] ) return [ field.toUpperCase() ].concat(result)
@@ -217,8 +223,8 @@ program
 program.on('--help', () => {
   console.log('  Examples:')
   console.log('')
-  console.log('    $ redis-dns server')
-  console.log('    $ redis-dns add A redis-dns.com 127.0.0.1 CNAME www.redis-dns.com redis-dns.com')
+  console.log('    $ simple-redis-dns server')
+  console.log('    $ simple-redis-dns add A redis-dns.com 127.0.0.1 CNAME www.redis-dns.com redis-dns.com')
   console.log('')
   console.log('  Record:')
   console.log('    <type> <name...> <ip...>')
