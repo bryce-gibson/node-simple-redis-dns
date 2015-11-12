@@ -1,7 +1,7 @@
 app:
   build: ./
   environment:
-    simple-redis-dns_redis: redis://redis:6379/
+    simpleredisdns_redis: redis://redis:6379/
   links:
     - redis
 

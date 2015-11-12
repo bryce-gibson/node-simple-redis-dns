@@ -14,6 +14,10 @@ const DEFAULTS = {
   }
 }
 
+const exit = () => process.exit(0)
+process.on('SIGINT', exit)
+process.on('SIGTERM', exit)
+
 var Promise = require('bluebird')
   , fs = Promise.promisifyAll(require('fs'))
   , net = require('net')
@@ -21,7 +25,7 @@ var Promise = require('bluebird')
   , program = require('commander')
   , Redis = require('ioredis')
   , rc = require('rc')
-  , conf = rc('simple-redis-dns', DEFAULTS)
+  , conf = rc('simpleredisdns', DEFAULTS)
   , _ = require('lodash')
   , winston = require('winston')
   , logger = winston // to allow refactoring
@@ -73,10 +77,16 @@ program
         .then( (results) => {
 
           _.each(results, (result) => {
-            res.answer.push(dns[type]({
-              name: name,
-              address: result,
-              ttl: 0
+            let recordType = result[0]
+              , recordName = result[1] || name
+              , address = result[2]
+              , data = result[3]
+
+            res.answer.push(dns[recordType]({
+              name: recordName
+              , address: address
+              , data: data
+              , ttl: 0
             }))
           })
           logger.debug('%s: Responding.', req.id)
@@ -171,6 +181,15 @@ program
           , domains = _.dropRightWhile(args, net.isIP)
           , ips = args.slice(domains.length)
 
+        if(type == 'CNAME') {
+
+          let domain = _.first(args)
+
+          return _(_.rest(args))
+            .map( (cname) => redis.set(`${type}:${cname}`, domain) )
+            .flatten()
+            .value()
+        }
         return _(domains)
           .map( (domain) => _.map(ips, (ip) => redis.sadd(`${type}:${domain}`, ip) ) )
           .flatten()
@@ -224,7 +243,7 @@ program.on('--help', () => {
   console.log('  Examples:')
   console.log('')
   console.log('    $ simple-redis-dns server')
-  console.log('    $ simple-redis-dns add A redis-dns.com 127.0.0.1 CNAME www.redis-dns.com redis-dns.com')
+  console.log('    $ simple-redis-dns add A redis-dns.com 127.0.0.1 CNAME redis-dns.com www.redis-dns.com blah.redis-dns.com')
   console.log('')
   console.log('  Record:')
   console.log('    <type> <name...> <ip...>')

@@ -5,6 +5,8 @@ A simple redis dns implementation.
 
 Built for use simple dev use cases.
 
+_This isn't really written for general use. YMMV._
+
 Examples
 --------
 
