@@ -104,9 +104,14 @@ program
       logger.error('Error whilst processing request.', err)
     }
 
+    const possiblyExitWithError = _.after(2, () => process.exit(1))
     _.each(servers, (s) => {
       s.on('request', onRequest)
       s.on('error', onError)
+      s.on('socketError', (err) => {
+        console.log(`Error starting server. ${err}`)
+        possiblyExitWithError()
+      })
     })
 
     fs.readFileAsync('lookup.lua', 'utf8').then( (lookup) => {
