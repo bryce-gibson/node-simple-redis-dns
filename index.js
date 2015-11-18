@@ -109,7 +109,7 @@ program
       s.on('request', onRequest)
       s.on('error', onError)
       s.on('socketError', (err) => {
-        console.log(`Error starting server. ${err}`)
+        logger.error(`Error starting server. ${err}`)
         possiblyExitWithError()
       })
     })
