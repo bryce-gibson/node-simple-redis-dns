@@ -3,7 +3,7 @@ Simple Redis DNS
 
 A simple redis dns implementation.
 
-Built for use simple dev use cases.
+Built for simple dev use cases.
 
 _This isn't really written for general use. YMMV._
 
